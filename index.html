@@ -111,7 +111,14 @@
   <div id="overlay">✅ Recorded</div>
 
   <script>
-    const scriptUrl = "https://script.google.com/macros/s/AKfycby7RyJKVAGSSjrvMz7zTcOAfGyO7Gz_mNesXCR4FbBMYHQn77TyjHq3lPO2QN_7Jiwx/exec";
+    const formId = "1FAIpQLSeUfzLzZlDhxqhsXcXFtZp0ztJ0yGvD29mR3XGpPe6XbIvTGg"; // your Google Form ID
+    const entries = {
+      name: "entry.714569195",
+      region: "entry.533384539",
+      position: "entry.761022084",
+      agency: "entry.1419522405",
+      session: "entry.1882036569" // ✅ Session field
+    };
 
     let html5QrCode;
     let lastScanTime = 0;
@@ -162,17 +169,19 @@
     }
 
     function submitAttendance(data) {
-      const session = document.getElementById("session").value; // ✅ get session from dropdown
+      const session = document.getElementById("session").value; // ✅ get facilitator-selected session
 
-      const url = `${scriptUrl}?name=${encodeURIComponent(data.name)}` +
-                  `&region=${encodeURIComponent(data.region)}` +
-                  `&position=${encodeURIComponent(data.position)}` +
-                  `&agency=${encodeURIComponent(data.agency)}` +
-                  `&session=${encodeURIComponent(session)}`;
+      const formUrl = `https://docs.google.com/forms/d/e/${formId}/formResponse` +
+        `?${entries.name}=${encodeURIComponent(data.name)}` +
+        `&${entries.region}=${encodeURIComponent(data.region)}` +
+        `&${entries.position}=${encodeURIComponent(data.position)}` +
+        `&${entries.agency}=${encodeURIComponent(data.agency)}` +
+        `&${entries.session}=${encodeURIComponent(session)}` +
+        `&submit=Submit`;
 
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
-      iframe.src = url;
+      iframe.src = formUrl;
       document.body.appendChild(iframe);
 
       log(`✅ Recorded: ${data.name} (${session})`);
