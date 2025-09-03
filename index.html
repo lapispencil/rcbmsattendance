@@ -4,40 +4,47 @@
   <meta charset="UTF-8">
   <title>Regional CBMS Convention Attendance</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background: #f9f9f9;
-      margin: 0;
-      padding: 10px;
+    body { 
+      font-family: sans-serif; 
+      text-align: center; 
+      background: #f9f9f9; 
+      margin: 0; 
+      padding: 0;
     }
-    h1 {
-      font-size: 1.4em;
-      margin-bottom: 10px;
+    h1 { font-size: 1.5em; margin: 15px; }
+    #reader { 
+      width: 90vw; 
+      max-width: 400px; 
+      margin: auto; 
     }
-    label, select, button {
-      font-size: 1.2em;
-      margin: 5px;
-    }
-    #reader {
-      width: 100%;
-      max-width: 400px;
-      margin: 15px auto;
-    }
-    #log {
-      margin-top: 15px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      height: 120px;
-      overflow-y: auto;
-      background: #fff;
+    #log { 
+      margin: 15px; 
+      padding: 10px; 
+      border: 1px solid #ccc; 
+      height: 150px; 
+      overflow-y: auto; 
+      background: #fff; 
       font-size: 0.9em;
       text-align: left;
     }
     .success { color: green; font-weight: bold; }
     .error { color: red; font-weight: bold; }
+
+    select, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 1em;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:disabled { background: #999; }
 
     /* Overlay confirmation */
     #overlay {
@@ -57,51 +64,31 @@
       text-align: center;
       padding: 20px;
     }
-    #overlay.show {
-      opacity: 1;
-    }
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #007bff;
-      color: white;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    @media (max-width: 600px) {
-      h1 { font-size: 1.1em; }
-      label, select, button { font-size: 1em; }
-    }
+    #overlay.show { opacity: 1; }
   </style>
 </head>
 <body>
   <h1>Regional CBMS Convention Attendance</h1>
 
-  <!-- Session dropdown -->
-  <label for="session">Select Session:</label>
-  <select id="session">
-    <option value="Plenary">Plenary</option>
-    <option value="Breakout 1">Breakout 1</option>
-    <option value="Breakout 2">Breakout 2</option>
-    <option value="Breakout 3">Breakout 3</option>
-    <option value="Breakout 4">Breakout 4</option>
-    <option value="Breakout 5">Breakout 5</option>
-    <option value="Breakout 6">Breakout 6</option>
-  </select>
-
-  <!-- Start/Stop buttons -->
+  <!-- Session selector -->
   <div>
-    <button onclick="startScanner()">▶️ Start</button>
-    <button onclick="stopScanner()">⏹️ Stop</button>
+    <label for="session">Select Session:</label><br>
+    <select id="session">
+      <option value="Plenary">Plenary</option>
+      <option value="Breakout 1">Breakout 1</option>
+      <option value="Breakout 2">Breakout 2</option>
+      <option value="Breakout 3">Breakout 3</option>
+      <option value="Breakout 4">Breakout 4</option>
+      <option value="Breakout 5">Breakout 5</option>
+      <option value="Breakout 6">Breakout 6</option>
+    </select>
   </div>
 
-  <!-- QR scanner -->
+  <!-- QR Scanner -->
   <div id="reader"></div>
+  <button onclick="startScanner()">▶️ Start Scanner</button>
+  <button onclick="stopScanner()">⏹️ Stop Scanner</button>
 
-  <!-- Log -->
   <div id="log"></div>
 
   <!-- Hidden beep sound -->
@@ -117,13 +104,15 @@
       region: "entry.533384539",
       position: "entry.761022084",
       agency: "entry.1419522405",
-      session: "entry.1882036569" // ✅ Session field
+      session: "entry.1882036569"
     };
+
+    const lookupScriptUrl = "https://script.google.com/macros/s/AKfycbzi0lZV4cNwhs9b_G46IUbAqLQtKh6qsogSDpXh0Dmr7tcWOp4uD5DeKwe3x9nMUf9V/exec";
 
     let html5QrCode;
     let lastScanTime = 0;
 
-    function log(msg, error = false) {
+    function log(msg, error=false) {
       const div = document.getElementById("log");
       const p = document.createElement("div");
       p.textContent = msg;
@@ -131,46 +120,14 @@
       div.prepend(p);
     }
 
-    function parseData(text) {
-      try {
-        if (text.includes("?")) {
-          const url = new URL(text);
-          return {
-            name: url.searchParams.get("name"),
-            region: url.searchParams.get("region"),
-            position: url.searchParams.get("position"),
-            agency: url.searchParams.get("agency"),
-          };
-        }
-        if (text.trim().startsWith("{")) {
-          return JSON.parse(text);
-        }
-        const parts = text.split(/[|,]/);
-        if (parts.length >= 4) {
-          return {
-            name: parts[0].trim(),
-            region: parts[1].trim(),
-            position: parts[2].trim(),
-            agency: parts[3].trim(),
-          };
-        }
-      } catch (e) {
-        return null;
-      }
-      return null;
-    }
-
     function showOverlay() {
       const overlay = document.getElementById("overlay");
       overlay.classList.add("show");
-      setTimeout(() => {
-        overlay.classList.remove("show");
-      }, 2000); // auto-hide after 2 seconds
+      setTimeout(() => overlay.classList.remove("show"), 2000);
     }
 
     function submitAttendance(data) {
-      const session = document.getElementById("session").value; // ✅ get facilitator-selected session
-
+      const session = document.getElementById("session").value;
       const formUrl = `https://docs.google.com/forms/d/e/${formId}/formResponse` +
         `?${entries.name}=${encodeURIComponent(data.name)}` +
         `&${entries.region}=${encodeURIComponent(data.region)}` +
@@ -188,23 +145,35 @@
       showOverlay();
     }
 
-    function onScanSuccess(decodedText) {
-      const now = Date.now();
-      if (now - lastScanTime < 2000) {
-        return; // cooldown 2s
+    async function parseData(text) {
+      try {
+        const url = new URL(text);
+        const id = url.searchParams.get("id");
+        if (!id) return null;
+
+        // Fetch participant details from masterlist
+        const response = await fetch(`${lookupScriptUrl}?id=${id}`);
+        const data = await response.json();
+        if (data.error) return null;
+
+        return data; // { name, region, position, agency }
+      } catch (e) {
+        return null;
       }
+    }
+
+    async function onScanSuccess(decodedText) {
+      const now = Date.now();
+      if (now - lastScanTime < 2000) return; // cooldown 2s
       lastScanTime = now;
 
-      // Beep
-      document.getElementById("beep").play().catch(e => {
-        console.log("Audio play prevented:", e);
-      });
+      document.getElementById("beep").play().catch(() => {});
 
-      let params = parseData(decodedText);
+      const params = await parseData(decodedText);
       if (params) {
         submitAttendance(params);
       } else {
-        log("❌ Invalid QR format", true);
+        log("❌ Invalid or unknown QR code", true);
       }
     }
 
@@ -212,14 +181,15 @@
       html5QrCode = new Html5Qrcode("reader");
       html5QrCode.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         onScanSuccess
       ).catch(err => log("Camera error: " + err, true));
     }
 
     function stopScanner() {
       if (html5QrCode) {
-        html5QrCode.stop().then(() => log("Scanner stopped"))
+        html5QrCode.stop()
+          .then(() => log("Scanner stopped"))
           .catch(err => log("Stop failed: " + err, true));
       }
     }
