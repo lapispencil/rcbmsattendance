@@ -5,35 +5,123 @@
   <title>Regional CBMS Convention Attendance</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; background: #f9f9f9; }
-    #reader { width: 350px; margin: auto; }
-    #log { margin-top: 20px; padding: 10px; border: 1px solid #ccc; height: 120px; overflow-y: auto; background: #fff; }
-    .success { color: green; font-weight: bold; }
-    .error { color: red; font-weight: bold; }
+    body {
+  font-family: sans-serif;
+  text-align: center;
+  background: #f9f9f9;
+  margin: 0;
+  padding: 0 10px;
+}
 
-    /* Overlay confirmation */
-    #overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 128, 0, 0.9);
-      color: white;
-      font-size: 4em;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    #overlay.show {
-      opacity: 1;
-    }
+h1 {
+  font-size: 1.5rem;
+  margin: 15px 0;
+}
+
+#reader {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  margin: 15px auto;
+}
+
+#log {
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  height: 150px;
+  overflow-y: auto;
+  background: #fff;
+  font-size: 1rem;
+  text-align: left;
+  border-radius: 8px;
+}
+
+.success { color: green; font-weight: bold; }
+.error { color: red; font-weight: bold; }
+
+label {
+  display: block;
+  margin: 10px 0 5px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+select {
+  padding: 10px;
+  font-size: 1.1rem;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+  margin-bottom: 15px;
+}
+
+button {
+  padding: 12px 20px;
+  font-size: 1.2rem;
+  margin: 5px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+  background: #0077cc;
+}
+
+button:active {
+  background: #005fa3;
+}
+
+button:nth-of-type(2) {
+  background: #cc0000;
+}
+
+button:nth-of-type(2):active {
+  background: #990000;
+}
+
+/* Overlay confirmation */
+#overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 128, 0, 0.9);
+  color: white;
+  font-size: 2.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+#overlay.show {
+  opacity: 1;
+}
+
+/* Make sure content fits small phones */
+@media (max-width: 480px) {
+  h1 { font-size: 1.2rem; }
+  button { width: 100%; margin: 8px 0; }
+  select { width: 100%; }
+}
+
   </style>
 </head>
 <body>
   <h1>Regional CBMS Convention Attendance</h1>
+
+  <!-- Session selector -->
+  <label for="session">Select Session:</label>
+  <select id="session">
+    <option value="Plenary">Plenary</option>
+    <option value="Breakout 1">Breakout 1</option>
+    <option value="Breakout 2">Breakout 2</option>
+    <option value="Breakout 3">Breakout 3</option>
+    <option value="Breakout 4">Breakout 4</option>
+    <option value="Breakout 5">Breakout 5</option>
+  </select>
+
   <div id="reader"></div>
   <button onclick="startScanner()">▶️ Start</button>
   <button onclick="stopScanner()">⏹️ Stop</button>
@@ -52,7 +140,8 @@
       name: "entry.714569195",
       region: "entry.533384539",
       position: "entry.761022084",
-      agency: "entry.1419522405"
+      agency: "entry.1419522405",
+      session: "entry.123456789" // <-- replace with actual Google Form session field ID
     };
 
     let html5QrCode;
@@ -64,6 +153,7 @@
       p.textContent = msg;
       p.className = error ? "error" : "success";
       div.prepend(p);
+      if (div.childNodes.length > 20) div.removeChild(div.lastChild);
     }
 
     function parseData(text) {
@@ -98,15 +188,17 @@
       overlay.classList.add("show");
       setTimeout(() => {
         overlay.classList.remove("show");
-      }, 2000); // auto-hide after 2 seconds
+      }, 2000);
     }
 
     function submitAttendance(data) {
+      const session = document.getElementById("session").value;
       const formUrl = `https://docs.google.com/forms/d/e/${formId}/formResponse` +
         `?${entries.name}=${encodeURIComponent(data.name)}` +
         `&${entries.region}=${encodeURIComponent(data.region)}` +
         `&${entries.position}=${encodeURIComponent(data.position)}` +
         `&${entries.agency}=${encodeURIComponent(data.agency)}` +
+        `&${entries.session}=${encodeURIComponent(session)}` +
         `&submit=Submit`;
 
       const iframe = document.createElement("iframe");
@@ -114,7 +206,7 @@
       iframe.src = formUrl;
       document.body.appendChild(iframe);
 
-      log(`✅ Recorded: ${data.name}`);
+      log(`✅ Recorded: ${data.name} (${session})`);
       showOverlay();
     }
 
@@ -125,7 +217,6 @@
       }
       lastScanTime = now;
 
-      // Beep
       document.getElementById("beep").play().catch(e => {
         console.log("Audio play prevented:", e);
       });
@@ -139,6 +230,7 @@
     }
 
     function startScanner() {
+      if (html5QrCode) return; // prevent double start
       html5QrCode = new Html5Qrcode("reader");
       html5QrCode.start(
         { facingMode: "environment" },
@@ -149,8 +241,10 @@
 
     function stopScanner() {
       if (html5QrCode) {
-        html5QrCode.stop().then(() => log("Scanner stopped"))
-          .catch(err => log("Stop failed: " + err, true));
+        html5QrCode.stop().then(() => {
+          log("Scanner stopped");
+          html5QrCode = null;
+        }).catch(err => log("Stop failed: " + err, true));
       }
     }
   </script>
