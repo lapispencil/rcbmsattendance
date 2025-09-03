@@ -119,7 +119,7 @@
     const lookupScriptUrl = "https://script.google.com/macros/s/AKfycbzi0lZV4cNwhs9b_G46IUbAqLQtKh6qsogSDpXh0Dmr7tcWOp4uD5DeKwe3x9nMUf9V/exec";
 
     let html5QrCode;
-    let lastScanTime = 0;
+    let scanningLocked = false; // ✅ prevents double scans
 
     function log(msg, error=false) {
       const div = document.getElementById("log");
@@ -171,9 +171,8 @@
     }
 
     async function onScanSuccess(decodedText) {
-      const now = Date.now();
-      if (now - lastScanTime < 2000) return; // ✅ cooldown still works
-      lastScanTime = now;
+      if (scanningLocked) return; // ignore if locked
+      scanningLocked = true; // lock immediately
 
       document.getElementById("beep").play().catch(() => {});
 
@@ -183,6 +182,9 @@
       } else {
         log("❌ Invalid or unknown QR code", true);
       }
+
+      // unlock after 2s
+      setTimeout(() => { scanningLocked = false; }, 2000);
     }
 
     function startScanner() {
